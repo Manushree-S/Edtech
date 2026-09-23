@@ -6,6 +6,7 @@ import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/screens/change_password_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/home/presentation/screens/home_screen.dart';
 import '../features/staff/presentation/screens/staff_dashboard_screen.dart';
 import '../features/student/presentation/screens/student_dashboard_screen.dart';
 
@@ -22,12 +23,14 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isAuthenticated = authState.isAuthenticated;
+    final isHome = state.matchedLocation == '/';
     final isLoggingIn = state.matchedLocation == '/login';
     final isChangingPassword = state.matchedLocation == '/change-password';
 
-    // 1. Unauthenticated users must be sent to /login
+    // 1. Unauthenticated users can view Home ('/') or Login ('/login')
     if (!isAuthenticated) {
-      return isLoggingIn ? null : '/login';
+      if (isHome || isLoggingIn) return null;
+      return '/login';
     }
 
     final user = authState.user!;
@@ -37,15 +40,15 @@ class RouterNotifier extends ChangeNotifier {
       return isChangingPassword ? null : '/change-password';
     }
 
-    // 3. User is authenticated & password is set. If on /login or /change-password or root /,
-    // route directly to their assigned role portal.
+    // 3. User is authenticated & password is set. If they visit login or change-password,
+    // route them to their role portal.
     final roleTarget = switch (user.role) {
       UserRole.student => '/student',
       UserRole.staff => '/staff',
       UserRole.nonTechnicalStaff => '/admin',
     };
 
-    if (isLoggingIn || isChangingPassword || state.matchedLocation == '/') {
+    if (isLoggingIn || isChangingPassword) {
       return roleTarget;
     }
 
@@ -75,10 +78,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const HomeScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),

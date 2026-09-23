@@ -5,13 +5,12 @@ import 'package:edtech/app.dart';
 import 'package:edtech/core/constants/app_roles.dart';
 import 'package:edtech/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:edtech/features/auth/presentation/screens/login_screen.dart';
+import 'package:edtech/features/home/presentation/screens/home_screen.dart';
 import 'package:edtech/features/student/presentation/screens/student_dashboard_screen.dart';
 import 'package:edtech/features/staff/presentation/screens/staff_dashboard_screen.dart';
 import 'package:edtech/features/admin/presentation/screens/admin_dashboard_screen.dart';
 
 void main() {
-  setUp(() {});
-
   void setPhoneScreenSize(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
@@ -21,7 +20,7 @@ void main() {
     });
   }
 
-  testWidgets('App renders LoginScreen initially without any public signup',
+  testWidgets('App renders HomeScreen initially and navigates to Sign In page',
       (WidgetTester tester) async {
     setPhoneScreenSize(tester);
 
@@ -32,19 +31,30 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify LoginScreen is shown
+    // 1. Verify HomeScreen is displayed first
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Unified Education & Academic Portal'), findsOneWidget);
+    expect(find.text('Go to Sign In Page'), findsOneWidget);
+
+    // 2. Click "Go to Sign In Page" CTA
+    final signInCTA = find.widgetWithText(ElevatedButton, 'Go to Sign In Page');
+    await tester.ensureVisible(signInCTA);
+    await tester.tap(signInCTA);
+    await tester.pumpAndSettle();
+
+    // 3. Verify LoginScreen is shown
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.text('EdTech Platform'), findsOneWidget);
     expect(find.text('Sign In'), findsOneWidget);
 
-    // Verify STRICT compliance: closed system, NO public sign-up / register button
+    // 4. Verify STRICT compliance: closed system, NO public sign-up / register button
     expect(find.textContaining('Sign Up', findRichText: true), findsNothing);
     expect(find.textContaining('Register', findRichText: true), findsNothing);
     expect(
         find.textContaining('Create Account', findRichText: true), findsNothing);
   });
 
-  testWidgets('Quick login routes to Student Dashboard correctly',
+  testWidgets('Quick login routes to Student Dashboard correctly from Login',
       (WidgetTester tester) async {
     setPhoneScreenSize(tester);
 
@@ -53,6 +63,11 @@ void main() {
         child: EdTechApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Go to login page
+    final signInBtn = find.widgetWithText(FilledButton, 'Sign In');
+    await tester.tap(signInBtn);
     await tester.pumpAndSettle();
 
     final studentButton = find.widgetWithText(OutlinedButton, 'Student');
@@ -65,7 +80,7 @@ void main() {
     expect(find.text('Student Portal'), findsOneWidget);
   });
 
-  testWidgets('Quick login routes to Staff Dashboard correctly',
+  testWidgets('Quick login routes to Staff Dashboard correctly from Login',
       (WidgetTester tester) async {
     setPhoneScreenSize(tester);
 
@@ -74,6 +89,11 @@ void main() {
         child: EdTechApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Go to login page
+    final signInBtn = find.widgetWithText(FilledButton, 'Sign In');
+    await tester.tap(signInBtn);
     await tester.pumpAndSettle();
 
     final staffButton = find.widgetWithText(OutlinedButton, 'Staff');
@@ -86,7 +106,7 @@ void main() {
     expect(find.text('Staff & Faculty Portal'), findsOneWidget);
   });
 
-  testWidgets('Quick login routes to Admin Dashboard correctly',
+  testWidgets('Quick login routes to Admin Dashboard correctly from Login',
       (WidgetTester tester) async {
     setPhoneScreenSize(tester);
 
@@ -95,6 +115,11 @@ void main() {
         child: EdTechApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Go to login page
+    final signInBtn = find.widgetWithText(FilledButton, 'Sign In');
+    await tester.tap(signInBtn);
     await tester.pumpAndSettle();
 
     final adminButton = find.widgetWithText(OutlinedButton, 'Admin / Ops');
