@@ -77,7 +77,7 @@ void main() {
 
     // Verify redirected to Student dashboard
     expect(find.byType(StudentDashboardScreen), findsOneWidget);
-    expect(find.text('Student Portal'), findsOneWidget);
+    expect(find.text('EDTECH ACADEMY'), findsOneWidget);
   });
 
   testWidgets('Quick login routes to Staff Dashboard correctly from Login',

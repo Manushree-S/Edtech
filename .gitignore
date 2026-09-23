@@ -65,4 +65,5 @@ firebase_options.dart
 **/macos/Runner/GoogleService-Info.plist
 **/firebase-debug.log
 .firebaserc
+serve.js
 
