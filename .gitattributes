@@ -1,0 +1,4 @@
+# Treat auto-generated Flutter platform wrappers as vendored so GitHub stats accurately reflect 100% Dart
+android/** linguist-vendored
+ios/** linguist-vendored
+web/** linguist-vendored
