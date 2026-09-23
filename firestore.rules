@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData(institutionId) {
+      return get(/databases/$(database)/documents/institutions/$(institutionId)/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(institutionId, role) {
+      return isAuthenticated() && getUserData(institutionId).role == role;
+    }
+
+    function isStudent(institutionId) {
+      return hasRole(institutionId, 'student');
+    }
+
+    function isStaff(institutionId) {
+      return hasRole(institutionId, 'staff');
+    }
+
+    function isNonTechnicalStaff(institutionId) {
+      return hasRole(institutionId, 'non_technical_staff');
+    }
+
+    match /institutions/{institutionId} {
+      allow read: if isAuthenticated();
+      allow write: if isNonTechnicalStaff(institutionId);
+
+      // User profiles: Admin-provisioned
+      match /users/{userId} {
+        // Users can read their own profile; Non-Technical staff can manage all profiles; Staff can read profiles
+        allow read: if isAuthenticated() && (
+          request.auth.uid == userId ||
+          isNonTechnicalStaff(institutionId) ||
+          isStaff(institutionId)
+        );
+        // Only Non-Technical staff can create/delete users (admin-provisioned closed system)
+        allow create, delete: if isNonTechnicalStaff(institutionId);
+        // User can update their own mustChangePassword / lastLogin; Admin can update all
+        allow update: if request.auth.uid == userId || isNonTechnicalStaff(institutionId);
+      }
+
+      // Academic content: Courses & Lessons (STRICTLY EXCLUDES Non-Technical Staff)
+      match /courses/{courseId} {
+        allow read: if isStudent(institutionId) || isStaff(institutionId);
+        allow write: if isStaff(institutionId);
+
+        match /lessons/{lessonId} {
+          allow read: if isStudent(institutionId) || isStaff(institutionId);
+          allow write: if isStaff(institutionId);
+        }
+      }
+
+      // Assignments & Submissions (STRICTLY EXCLUDES Non-Technical Staff)
+      match /assignments/{assignmentId} {
+        allow read: if isStudent(institutionId) || isStaff(institutionId);
+        allow write: if isStaff(institutionId);
+
+        match /submissions/{submissionId} {
+          // Students read & create their own submission; Staff grades all submissions
+          allow read: if (isStudent(institutionId) && resource.data.studentId == request.auth.uid) || isStaff(institutionId);
+          allow create: if isStudent(institutionId) && request.resource.data.studentId == request.auth.uid;
+          allow update: if isStaff(institutionId); // Staff grading only
+        }
+      }
+
+      // Attendance Tracking End-to-End
+      match /attendance_sessions/{sessionId} {
+        // Staff creates/updates sessions; Non-Technical staff can read for reports
+        allow read: if isStaff(institutionId) || isNonTechnicalStaff(institutionId);
+        allow write: if isStaff(institutionId);
+
+        match /records/{recordId} {
+          // Student can read only their own record; Staff & Non-Tech staff can read all
+          allow read: if (isStudent(institutionId) && resource.data.studentId == request.auth.uid)
+                      || isStaff(institutionId)
+                      || isNonTechnicalStaff(institutionId);
+          allow write: if isStaff(institutionId);
+        }
+      }
+
+      // Fees & Financial Records (STRICTLY EXCLUDES Staff)
+      match /fees/{feeId} {
+        // Non-Technical staff manages fees; Student can only read their own dues/receipts
+        allow read: if (isStudent(institutionId) && resource.data.studentId == request.auth.uid)
+                    || isNonTechnicalStaff(institutionId);
+        allow write: if isNonTechnicalStaff(institutionId);
+      }
+    }
+  }
+}
